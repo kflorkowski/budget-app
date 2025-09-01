@@ -74,9 +74,13 @@ WSGI_APPLICATION = 'budget_app.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "budget_app_db",
+        "USER": "budget_app_user",
+        "PASSWORD": os.environ.get('USER_PASSWORD'),
+        "HOST": "127.0.0.1",
+        "PORT": "5432",
     }
 }
 
