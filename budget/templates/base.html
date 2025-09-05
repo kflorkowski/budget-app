@@ -12,7 +12,7 @@
         <h1>Budget App</h1>
         {% if user.is_authenticated %}
             <nav>
-                <a href='#'>Home</a>
+                <a href='{% url "dashboard" %}'>Home</a>
                 <a href='#'>Budgets</a>
                 <a href='#'>Goals</a>
                 <a href='#'>Transaction History</a>
