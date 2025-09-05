@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
-from .forms import UserLoginForm
+from .forms import UserLoginForm, UserRegisterForm
 
 # Create your views here.
 def base(request):
@@ -31,3 +31,25 @@ def user_login(request):
     else:
         form = UserLoginForm()
     return render(request, 'login.html', {'form': form})
+
+
+def user_register(request):
+    """
+    Handles user registration. If the form is submitted with valid data, a new user is created
+    and redirected to the login page with a success message.
+
+    POST - If the request method is POST, the form is processed. If the form is valid, a new user
+    is created and a success message is displayed.
+
+    GET - If the request method is GET, an empty user registration form is displayed to the user.
+    """
+    if request.method == "POST":
+        form = UserRegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Account created for {username}')
+            return redirect('login')
+    else:
+        form = UserRegisterForm()
+    return render(request, 'register.html', {'form': form})
