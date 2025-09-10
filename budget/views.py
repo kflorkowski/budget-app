@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from .forms import UserLoginForm, UserRegisterForm
 from django.views.generic import TemplateView
 from django.db.models import Sum
@@ -58,6 +58,14 @@ def user_register(request):
         form = UserRegisterForm()
     return render(request, 'register.html', {'form': form})
 
+def user_logout(request):
+    """
+    Logs out the currently authenticated user and redirects to the login page.
+
+    POST - Performs the logout action and redirects the user to the login page.
+    """
+    logout(request)
+    return redirect('login')
 
 class DashboardView(TemplateView):
     """
