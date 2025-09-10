@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from .forms import UserLoginForm, UserRegisterForm
+from .forms import UserLoginForm, UserRegisterForm, IncomeForm, ExpenseForm
 from django.views.generic import TemplateView
 from django.db.models import Sum
 from datetime import datetime
+from django.contrib.auth.decorators import login_required
 from .models import Income, Expense, Goal, Contribution, Category
 
 # Create your views here.
@@ -141,3 +142,80 @@ class DashboardView(TemplateView):
             'total_balance': total_balance,
         })
         return context
+
+
+@login_required
+def transactions(request):
+    """
+    This view is responsible for displaying the user's transactions, including both expenses and incomes.
+
+    Decorator:
+    - @login_required: This decorator ensures that only authenticated users can access this view.
+      If the user is not logged in, they will be redirected to the login page.
+
+    - Retrieves the expenses and incomes associated with the authenticated user from the database.
+    - Filters the `Expense` and `Income` models based on the currently logged-in user (`request.user`).
+    - Renders the `transactions.html` template, passing the filtered `expenses` and `incomes` as context to the template.
+    """
+    expenses = Expense.objects.filter(user=request.user)
+    incomes = Income.objects.filter(user=request.user)
+    return render(request, 'transactions.html', {'expenses': expenses, 'incomes': incomes})
+
+
+@login_required
+def add_income(request):
+    """
+    Handles the creation of a new income entry.
+
+    Decorator:
+    - @login_required: This decorator ensures that only authenticated users can access this view.
+      If the user is not logged in, they will be redirected to the login page.
+
+    POST:
+    - Processes the submitted form data to create a new income record.
+    - The income is saved to the database with the current user assigned to the `user` field.
+    - After successfully saving, the user is redirected to the 'transactions' page.
+
+    GET:
+    - Initializes an empty form for creating a new income record.
+    - Renders the form to the user in the 'add_income' template.
+    """
+
+    if request.method == 'POST':
+        form = IncomeForm(request.POST)
+        if form.is_valid():
+            income = form.save(commit=False)
+            income.user = request.user
+            income = form.save()
+            return redirect('transactions')
+    else:
+        form = IncomeForm()
+    return render(request, 'add_income.html', {'form': form})
+
+
+@login_required
+def add_expense(request):
+    """
+    View to handle the creation of a new expense.
+
+    Decorator:
+    - @login_required: This decorator ensures that only authenticated users can access this view.
+      If the user is not logged in, they will be redirected to the login page.
+
+    POST:
+    - Processes the form data, creates a new expense linked to the user, and saves it to the database.
+    - After successful submission, redirects to the transactions page.
+
+    GET:
+    - Initializes an empty form for creating a new expense and renders the page.
+    """
+    if request.method == 'POST':
+        form = ExpenseForm(request.POST)
+        if form.is_valid():
+            expense = form.save(commit=False)
+            expense.user = request.user
+            expense = form.save()
+            return redirect('transactions')
+    else:
+        form = ExpenseForm()
+    return render(request, 'add_expense.html', {'form': form})
