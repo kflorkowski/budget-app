@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from .forms import UserLoginForm, UserRegisterForm, IncomeForm, ExpenseForm
@@ -219,3 +219,63 @@ def add_expense(request):
     else:
         form = ExpenseForm()
     return render(request, 'add_expense.html', {'form': form})
+
+@login_required
+def edit_income(request, transaction_id):
+    """
+    General:
+        This view handles both editing and deleting an income transaction.
+
+    Decorator:
+    - @login_required: This decorator ensures that only authenticated users can access this view.
+      If the user is not logged in, they will be redirected to the login page.
+
+    POST:
+        - If the request contains 'edit', the form is validated and the income transaction is updated.
+        - If the request contains 'delete', the income transaction is deleted from the database.
+        - After either update or delete, the user is redirected to the 'transactions' page.
+
+    GET:
+        - A GET request is handled by initializing the form with the existing income transaction data.
+        - The page displays the current values in the form, allowing the user to edit the transaction.
+    """
+
+    transaction = get_object_or_404(Income, id=transaction_id)
+    form = IncomeForm(request.POST or None, instance=transaction)
+    if request.method == 'POST':
+        if 'edit' in request.POST and form.is_valid():
+            form.save()
+            return redirect('transactions')
+        elif 'delete' in request.POST:
+            transaction.delete()
+            return redirect('transactions')
+    return render(request, 'edit_transaction.html', {'form': form, 'type': 'income'})
+
+@login_required
+def edit_expense(request, transaction_id):
+    """
+    This view handles both editing and deleting an expense transaction.
+
+    Decorator:
+    - @login_required: This decorator ensures that only authenticated users can access this view.
+      If the user is not logged in, they will be redirected to the login page.
+
+    POST:
+        - If the request contains 'edit', the form is validated and the expense transaction is updated.
+        - If the request contains 'delete', the expense transaction is deleted from the database.
+        - After either update or delete, the user is redirected to the 'transactions' page.
+
+    GET:
+        - A GET request is handled by initializing the form with the existing expense transaction data.
+        - The page displays the current values in the form, allowing the user to edit the transaction.
+    """
+    transaction = get_object_or_404(Expense, id=transaction_id)
+    form = ExpenseForm(request.POST or None, instance=transaction)
+    if request.method == 'POST':
+        if 'edit' in request.POST and form.is_valid():
+            form.save()
+            return redirect('transactions')
+        elif 'delete' in request.POST:
+            transaction.delete()
+            return redirect('transactions')
+    return render(request, 'edit_transaction.html', {'form': form, 'type': 'expense'})
