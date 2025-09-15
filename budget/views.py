@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from .forms import UserLoginForm, UserRegisterForm, IncomeForm, ExpenseForm
+from .forms import UserLoginForm, UserRegisterForm, IncomeForm, ExpenseForm, GoalForm
 from django.views.generic import TemplateView
 from django.db.models import Sum
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from .models import Income, Expense, Goal, Contribution, Category
+from django.db import models
 
 # Create your views here.
 def base(request):
@@ -279,3 +280,67 @@ def edit_expense(request, transaction_id):
             transaction.delete()
             return redirect('transactions')
     return render(request, 'edit_transaction.html', {'form': form, 'type': 'expense'})
+
+
+@login_required
+def goals(request):
+    """
+    View that displays goals assigned to the logged-in user and goals of other users.
+    It shows details of the goals, including the total contributions and the progress percentage.
+
+    Decorator:
+    - @login_required: This decorator ensures that only authenticated users can access this view.
+      If the user is not logged in, they will be redirected to the login page.
+
+    Logic:
+    1. Retrieve goals assigned to the logged-in user and other users.
+       - `my_goals`: Goals assigned to the logged-in user.
+       - `others_goals`: Goals assigned to other users.
+    2. Calculate the total contributions for each goal.
+    3. Calculate the progress percentage for each goal.
+    4. Render the `goals.html` template with the goals data.
+    """
+    my_goals = Goal.objects.filter(owner=request.user)
+    others_goals = Goal.objects.exclude(owner=request.user)
+
+    for goal in my_goals:
+        total_contributions = Contribution.objects.filter(goal=goal).aggregate(total_amount=models.Sum('amount'))[
+                                  'total_amount'] or 0
+        goal.current_amount = total_contributions
+        goal.current_percentage = round((total_contributions / goal.target_amount) * 100,
+                                        2) if goal.target_amount > 0 else 0
+
+    for goal in others_goals:
+        total_contributions = Contribution.objects.filter(goal=goal).aggregate(total_amount=models.Sum('amount'))[
+                                  'total_amount'] or 0
+        goal.current_amount = total_contributions
+        goal.current_percentage = round((total_contributions / goal.target_amount) * 100,
+                                        2) if goal.target_amount > 0 else 0
+
+    return render(request, 'goals.html', {'my_goals': my_goals, 'others_goals': others_goals})
+
+
+@login_required
+def add_goal(request):
+    """
+    View handling the creation of a new goal.
+
+    Decorator:
+    - @login_required: This decorator ensures that only authenticated users can access this view.
+      If the user is not logged in, they will be redirected to the login page.
+
+    POST - Checks if the data in the form is valid, assigns the owner to the goal,
+    saves the goal to the database, and redirects the user to the goals page.
+
+    GET - Creates an empty form and renders the page with the goal creation form.
+    """
+    if request.method == 'POST':
+        form = GoalForm(request.POST)
+        if form.is_valid():
+            goal = form.save(commit=False)
+            goal.owner = request.user
+            goal = form.save()
+            return redirect('goals')
+    else:
+        form = GoalForm()
+    return render(request, 'add_goal.html', {'form': form})
