@@ -379,3 +379,51 @@ def donation(request, goal_id):
     else:
         form = ContributionForm
     return render(request, 'donate.html', {'form': form, 'goal': goal})
+
+@login_required
+def budgets(request):
+    """
+    The `budgets` view calculates and displays the total income and total expenses of a user within
+    a specified date range, as well as the net budget (the difference between income and expenses).
+    The user can filter data by providing a start and end date in the GET request.
+
+    Decorator:
+    - @login_required: This decorator ensures that only authenticated users can access this view.
+      If the user is not logged in, they will be redirected to the login page.
+
+    Parameters:
+    - `start_date` (optional): The start date of the period for calculation. Defaults to the first day of the current month.
+    - `end_date` (optional): The end date of the period for calculation. Defaults to the current date.
+    """
+    start_date = request.GET.get('start_date', datetime.today().replace(day=1).strftime('%Y-%m-%d'))
+    end_date = request.GET.get('end_date', datetime.today().strftime('%Y-%m-%d'))
+
+    try:
+
+        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+    except ValueError:
+        start_date_obj = datetime.today().replace(day=1)
+        end_date_obj = datetime.today()
+
+    total_income = Income.objects.filter(
+        user=request.user,
+        date__range=[start_date_obj, end_date_obj]
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+
+    total_expenses = Expense.objects.filter(
+        user=request.user,
+        date__range=[start_date_obj, end_date_obj]
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+
+    net_budget = total_income - total_expenses
+
+    context = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_budget': net_budget,
+    }
+
+    return render(request, 'budgets.html', context)
