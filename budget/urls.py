@@ -9,6 +9,7 @@ urlpatterns = [
     path('logout/', views.user_logout, name='logout'),
     path('goals', views.goals, name='goals'),
     path('goals/add-goal', views.add_goal, name='add_goal'),
+    path('goals/donate/<int:goal_id>', views.donation, name='donation'),
     path('transactions/', views.transactions ,name='transactions'),
     path('transactions/add-income', views.add_income, name='add_income'),
     path('transactions/add-expense', views.add_expense, name='add_expense'),

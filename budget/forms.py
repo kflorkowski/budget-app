@@ -1,7 +1,9 @@
 from django import forms
-from django.contrib.auth.models import User
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from .models import Income, Expense, Goal
+from django.contrib.auth.models import User
+
+from .models import Income, Expense, Goal, Contribution
+
 
 class UserLoginForm(AuthenticationForm):
     """
@@ -84,3 +86,27 @@ class GoalForm(forms.ModelForm):
         model = Goal
         fields = ('name', 'description', 'target_amount')
         exclude = ['contributor']
+
+class ContributionForm(forms.ModelForm):
+    """
+    Form used to create or update a contribution towards a goal.
+    Validates that the contribution amount is positive.
+    """
+    class Meta:
+        model = Contribution
+        fields = ['amount']
+
+    def clean_amount(self):
+        """
+        Validates that the contribution amount is positive.
+
+        Returns:
+            amount (float): The valid contribution amount.
+
+        Raises:
+            forms.ValidationError: If the amount is less than or equal to 0.
+        """
+        amount = self.cleaned_data.get('amount')
+        if amount <= 0:
+            raise forms.ValidationError('Amount must be positive.')
+        return amount

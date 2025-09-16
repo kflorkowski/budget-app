@@ -1,13 +1,16 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from datetime import datetime
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from .forms import UserLoginForm, UserRegisterForm, IncomeForm, ExpenseForm, GoalForm
-from django.views.generic import TemplateView
-from django.db.models import Sum
-from datetime import datetime
 from django.contrib.auth.decorators import login_required
-from .models import Income, Expense, Goal, Contribution, Category
 from django.db import models
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.generic import TemplateView
+
+from .forms import ExpenseForm, GoalForm, IncomeForm, UserLoginForm, UserRegisterForm, ContributionForm
+from .models import Category, Contribution, Expense, Goal, Income
+
 
 # Create your views here.
 def base(request):
@@ -344,3 +347,35 @@ def add_goal(request):
     else:
         form = GoalForm()
     return render(request, 'add_goal.html', {'form': form})
+
+
+@login_required
+def donation(request, goal_id):
+    """
+    Handles user donations to a specific goal.
+
+    Decorator:
+    - @login_required: This decorator ensures that only authenticated users can access this view.
+      If the user is not logged in, they will be redirected to the login page.
+
+    POST:
+    - Validates the submitted form data.
+    - Associates the donation with the selected goal and the authenticated user.
+    - Saves the donation and redirects to the goals page.
+
+    GET:
+    - Displays the donation form and the selected goal's details.
+    """
+    goal = get_object_or_404(Goal, id=goal_id)
+
+    if request.method == 'POST':
+        form = ContributionForm(request.POST)
+        if form.is_valid():
+            contribution = form.save(commit=False)
+            contribution.goal = goal
+            contribution.contributor = request.user
+            contribution.save()
+            return redirect('goals')
+    else:
+        form = ContributionForm
+    return render(request, 'donate.html', {'form': form, 'goal': goal})
