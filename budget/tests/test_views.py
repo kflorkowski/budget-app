@@ -1,5 +1,6 @@
 import pytest
 from django.urls import reverse
+from django.contrib.auth.models import User
 
 # tests - views.base
 @pytest.mark.django_db
@@ -58,3 +59,30 @@ def test_user_register_invalid_data(client):
 
     assert response.status_code == 200
     assert 'password2' in response.content.decode()
+
+# tests - views.user_login
+@pytest.mark.django_db
+def test_user_login_valid_data(client):
+    """
+    Test that a user can log in successfully with valid credentials.
+    This test checks if the user is redirected to the dashboard after a successful login.
+    """
+    user = User.objects.create_user(username='testuser', password='testpassword')
+
+    url = reverse('login')
+    response = client.post(url, {'username': 'testuser', 'password': 'testpassword'})
+
+    assert response.status_code == 302
+    assert response.url == reverse('dashboard')
+
+@pytest.mark.django_db
+def test_user_login_invalid_data(client):
+    """
+    Test that login fails with invalid credentials.
+    This test checks if the user sees an error message when providing incorrect login data.
+    """
+    url = reverse('login')
+    response = client.post(url, {'username': 'wronguser', 'password': 'wrongpassword'})
+
+    assert response.status_code == 200
+    assert 'Username or password is incorrect' in response.content.decode()
