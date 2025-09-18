@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+# tests - views.base
 @pytest.mark.django_db
 def test_base_view_status_code(client):
     """
@@ -20,3 +21,40 @@ def test_base_view_title(client):
     url = reverse('base')
     response = client.get(url)
     assert '<title>Budget App</title>' in response.content.decode()
+
+# tests - views.user_register
+@pytest.mark.django_db
+def test_user_register_valid_data(client):
+    """
+    Test that a user can successfully register with valid data.
+    This test checks if the user is redirected to the login page after a successful registration.
+    """
+    data = {
+        'username': 'testuser',
+        'email': 'test@example.com',
+        'password1': 'Test123!!',
+        'password2': 'Test123!!',
+    }
+
+    response = client.post(reverse('register'), data)
+
+    assert response.status_code == 302
+    assert response.url == reverse('login')
+
+@pytest.mark.django_db
+def test_user_register_invalid_data(client):
+    """
+    Test that the registration fails when invalid data is provided.
+    This test checks if the user is not redirected and if the form validation error for password mismatch appears.
+    """
+    url = reverse('register')
+    data = {
+        'username': 'testuser',
+        'email': 'testuser@example.com',
+        'password1': 'Test123!',
+        'password2': 'password124',
+    }
+    response = client.post(url, data)
+
+    assert response.status_code == 200
+    assert 'password2' in response.content.decode()
