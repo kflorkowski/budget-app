@@ -86,3 +86,32 @@ def test_user_login_invalid_data(client):
 
     assert response.status_code == 200
     assert 'Username or password is incorrect' in response.content.decode()
+
+
+# tests - views.user_logout
+@pytest.mark.django_db
+def test_user_logout_redirects(client):
+    """
+    Test that a logged-in user is redirected to the login page upon logout.
+    This test ensures that after logging out, the user is redirected to the login page.
+    """
+    user = User.objects.create_user(username='testuser', password='Test123!')
+
+    client.login(username='testuser', password='Test123!')
+
+    response = client.get(reverse('logout'))
+
+    assert response.status_code == 302
+    assert response.url == reverse('login')
+
+
+@pytest.mark.django_db
+def test_user_logout_no_user_logged_in(client):
+    """
+    Test that a user who is not logged in is redirected to the login page when attempting to log out.
+    This test ensures that even without a logged-in user, a logout request redirects to the login page.
+    """
+    response = client.get(reverse('logout'))
+
+    assert response.status_code == 302
+    assert response.url == reverse('login')
