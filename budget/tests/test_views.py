@@ -216,3 +216,51 @@ def test_goals_view_no_goals(client):
     assert len(response.context['my_goals']) == 0
 
     assert 'No record yet.' in response.content.decode()
+
+# tests - views.add_goal
+@pytest.mark.django_db
+def test_add_goal_form_render():
+    """
+    Test if the add goal form is rendered correctly for the user.
+    This test checks if the form is displayed with the correct method and form elements.
+    """
+    User.objects.create_user(username='testuser', password='Testpassword1!')
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.get(reverse('add_goal'))
+
+    assert response.status_code == 200
+    assert 'Create Goal' in response.content.decode()
+    assert '<form' in response.content.decode()
+    # HTML uses single quotes for attributes, keeping consistency with template output.
+    assert 'method=\'POST\'' in response.content.decode()
+
+@pytest.mark.django_db
+def test_add_goal_form_submission():
+    """
+    Test if the add goal form is submitted correctly and the goal is saved in the database.
+    This test checks if the form data is correctly processed and if the user is redirected after submission.
+    """
+    user = User.objects.create_user(username='testuser', password='testpassword')
+    client = Client()
+    client.login(username='testuser', password='testpassword')
+
+    data = {
+        'name': 'New Goal',
+        'description': 'This is a test goal.',
+        'target_amount': 1000.00,
+    }
+
+    response = client.post(reverse('add_goal'), data)
+
+    assert response.status_code == 302
+    assert response.url == reverse('goals')
+
+    goal = Goal.objects.first()
+    assert goal is not None
+    assert goal.name == 'New Goal'
+    assert goal.description == 'This is a test goal.'
+    assert goal.target_amount == 1000.00
+    assert goal.owner == user
