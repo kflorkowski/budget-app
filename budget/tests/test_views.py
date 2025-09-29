@@ -176,3 +176,43 @@ def test_dashboard_view_context_data(client):
     assert response.context['total_expenses'] == 100
     assert response.context['total_incomes'] == 200
     assert response.context['total_balance'] == 100
+
+# tests - views.goals
+@pytest.mark.django_db
+def test_goals_view(client):
+    """
+    Test if the goals view displays the correct goal data for the user.
+    This test checks if the user's goals, contributions, and the calculated amount and percentage are correctly shown.
+    """
+    user = User.objects.create_user(username='testuser', password='password')
+    goal = Goal.objects.create(owner=user, name='Test Goal', target_amount=1000)
+    Contribution.objects.create(goal=goal, contributor=user, amount=500)
+    Contribution.objects.create(goal=goal, contributor=user, amount=100)
+
+    client.login(username='testuser', password='password')
+
+    response = client.get(reverse('goals'))
+
+    assert 'my_goals' in response.context
+    assert len(response.context['my_goals']) == 1
+
+    goal = response.context['my_goals'][0]
+    assert goal.current_amount == 600
+    assert goal.current_percentage == 60.0
+
+@pytest.mark.django_db
+def test_goals_view_no_goals(client):
+    """
+    Test if the goals view correctly handles the case when the user has no goals.
+    This test checks if the correct message is displayed when the user has no goals.
+    """
+    User.objects.create_user(username='testuser2', password='password')
+
+    client.login(username='testuser2', password='password')
+
+    response = client.get(reverse('goals'))
+
+    assert 'my_goals' in response.context
+    assert len(response.context['my_goals']) == 0
+
+    assert 'No record yet.' in response.content.decode()
