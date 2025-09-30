@@ -264,3 +264,47 @@ def test_add_goal_form_submission():
     assert goal.description == 'This is a test goal.'
     assert goal.target_amount == 1000.00
     assert goal.owner == user
+
+# tests - views.donation
+@pytest.mark.django_db
+def test_donation_form_render():
+    """
+    Test if the donation form is rendered correctly with the goal details.
+    This test ensures the form is displayed with the correct method and includes necessary form elements.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    goal = Goal.objects.create(owner=user, name="Test Goal", target_amount=500)
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.get(reverse('donation', kwargs={'goal_id': goal.id}))
+
+    assert response.status_code == 200
+    assert f"Donate to goal: {goal.name}" in response.content.decode()
+    assert '<form method="POST">' in response.content.decode()
+    assert '<button type="submit">Donate</button>' in response.content.decode()
+
+@pytest.mark.django_db
+def test_donation_submission():
+    """
+    Test if the donation submission works correctly and the donation is saved.
+    This test checks if the form submission redirects to the correct page and saves the donation in the database.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    goal = Goal.objects.create(owner=user, name="Test Goal", target_amount=500)
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.post(
+        reverse('donation', kwargs={'goal_id': goal.id}),
+        data={'amount': 100}
+    )
+
+    assert response.status_code == 302
+    assert response.url == reverse('goals')
+
+    contribution = Contribution.objects.filter(goal=goal, contributor=user).first()
+    assert contribution is not None
+    assert contribution.amount == 100
