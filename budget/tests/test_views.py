@@ -308,3 +308,43 @@ def test_donation_submission():
     contribution = Contribution.objects.filter(goal=goal, contributor=user).first()
     assert contribution is not None
     assert contribution.amount == 100
+
+# tests - views.transactions
+@pytest.mark.django_db
+def test_transactions_view():
+    """
+    Test if the transactions view correctly displays the expense and income records.
+    This test ensures that both expenses and incomes are displayed on the transactions page when they exist.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    category = Category.objects.create(name="Housing")
+
+    expense = Expense.objects.create(user=user, name="Expense 1", amount=100, date="2024-11-19", category=category)
+    income = Income.objects.create(user=user, name="Income 1", amount=200, date="2024-11-19", category=category)
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.get(reverse('transactions'))
+
+    assert response.status_code == 200
+    assert "Outcome" in response.content.decode()
+    assert "Income" in response.content.decode()
+    assert "Expense 1" in response.content.decode()
+    assert "Income 1" in response.content.decode()
+
+@pytest.mark.django_db
+def test_transactions_no_records():
+    """
+    Test if the transactions view displays a message when no transactions exist.
+    This test checks that the 'No record yet.' message is shown when there are no expenses or incomes.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.get(reverse('transactions'))
+
+    assert response.status_code == 200
+    assert "No record yet." in response.content.decode()
