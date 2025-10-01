@@ -393,3 +393,46 @@ def test_add_income_form_submission():
     assert response.status_code == 302
     assert response.url == reverse('transactions')
     assert Income.objects.filter(name='Salary', amount=2000).exists()
+
+# tests - views.add_expanse
+@pytest.mark.django_db
+def test_add_expense_form_render():
+    """
+    Test if the 'Add Expense' form is rendered correctly.
+    This test ensures that when the user visits the 'add_expense' page, the form is displayed with the correct HTML.
+    """
+    User.objects.create_user(username='testuser', password='Testpassword1!')
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.get(reverse('add_expense'))
+
+    assert response.status_code == 200
+    assert 'Add Expense' in response.content.decode()
+    assert '<form method="POST">' in response.content.decode()
+    assert '<button type="submit">Add Expense</button>' in response.content.decode()
+
+@pytest.mark.django_db
+def test_add_expense_form_submission():
+    """
+    Test if the 'Add Expense' form successfully submits data and redirects.
+    This test checks if valid data is posted to the form, causing the expense to be created and the user to be redirected.
+    """
+    User.objects.create_user(username='testuser', password='Testpassword1!')
+    category = Category.objects.create(name='Housing')
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    data = {
+        'name': 'Test Expense',
+        'amount': 100,
+        'date': '2024-11-19',
+        'category': category.id,
+    }
+
+    response = client.post(reverse('add_expense'), data)
+
+    assert response.status_code == 302
+    assert Expense.objects.filter(name='Test Expense', amount=100).exists()
