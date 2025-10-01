@@ -319,8 +319,8 @@ def test_transactions_view():
     user = User.objects.create_user(username='testuser', password='Testpassword1!')
     category = Category.objects.create(name="Housing")
 
-    expense = Expense.objects.create(user=user, name="Expense 1", amount=100, date="2024-11-19", category=category)
-    income = Income.objects.create(user=user, name="Income 1", amount=200, date="2024-11-19", category=category)
+    Expense.objects.create(user=user, name="Expense 1", amount=100, date="2024-11-19", category=category)
+    Income.objects.create(user=user, name="Income 1", amount=200, date="2024-11-19", category=category)
 
     client = Client()
     client.login(username='testuser', password='Testpassword1!')
@@ -339,7 +339,7 @@ def test_transactions_no_records():
     Test if the transactions view displays a message when no transactions exist.
     This test checks that the 'No record yet.' message is shown when there are no expenses or incomes.
     """
-    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    User.objects.create_user(username='testuser', password='Testpassword1!')
 
     client = Client()
     client.login(username='testuser', password='Testpassword1!')
@@ -348,3 +348,48 @@ def test_transactions_no_records():
 
     assert response.status_code == 200
     assert "No record yet." in response.content.decode()
+
+
+# tests - views.add_income
+@pytest.mark.django_db
+def test_add_income_form_render():
+    """
+    Test if the 'Add Income' form is rendered correctly.
+    This test ensures that when the user visits the 'add_income' page, the form is displayed with the correct HTML.
+    """
+    User.objects.create_user(username='testuser', password='Testpassword1!')
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.get(reverse('add_income'))
+
+    assert response.status_code == 200
+    assert 'Add Income' in response.content.decode()
+    assert '<form method="POST">' in response.content.decode()
+    assert 'Add Income' in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_add_income_form_submission():
+    """
+    Test if the 'Add Income' form successfully submits data and redirects.
+    This test checks if valid data is posted to the form, causing the income to be created and the user to be redirected.
+    """
+    User.objects.create_user(username='testuser', password='Testpassword1!')
+    category = Category.objects.create(name='Salary')
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    income_data = {
+        'name': 'Salary',
+        'amount': 2000,
+        'category': category.id,
+        'date': '2024-11-19',
+    }
+    response = client.post(reverse('add_income'), data=income_data)
+
+    assert response.status_code == 302
+    assert response.url == reverse('transactions')
+    assert Income.objects.filter(name='Salary', amount=2000).exists()
