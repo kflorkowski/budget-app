@@ -128,7 +128,7 @@ def test_dashboard_view_status_code(client):
     Test if the dashboard page loads with status code 200.
     This test ensures that the dashboard view returns the correct status code when accessed by a logged-in user.
     """
-    user = User.objects.create_user(username='testuser', password='Test123!')
+    User.objects.create_user(username='testuser', password='Test123!')
     client.login(username='testuser', password='Test123!')
     url = reverse('dashboard')
     response = client.get(url)
@@ -137,7 +137,7 @@ def test_dashboard_view_status_code(client):
 
 
 @pytest.mark.django_db
-def test_dashboard_view_context_data(client):
+def test_dashboard_view_context_data():
     """
     Test if the correct context data is passed to the dashboard view.
     This test checks if the user's goals, category summary, and financial data are included in the context.
@@ -436,3 +436,63 @@ def test_add_expense_form_submission():
 
     assert response.status_code == 302
     assert Expense.objects.filter(name='Test Expense', amount=100).exists()
+
+
+# tests - views.edit_income
+@pytest.mark.django_db
+def test_edit_income_form_submission(client):
+    """
+    Test if the 'Edit Income' form successfully updates an income transaction.
+    This test checks if the user can update an existing income, with the correct category, amount, and date.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    category = Category.objects.create(name='Salary')
+
+    income = Income.objects.create(
+        user=user,
+        name="Salary",
+        amount=1000,
+        category=category,
+        date="2024-11-01"
+    )
+
+    client.login(username='testuser', password='Testpassword1!')
+
+    form_data = {
+        'name': 'Updated Salary',
+        'category': category.id,
+        'amount': 1200,
+        'date': '2024-11-15',
+        'edit': 'edit',
+    }
+
+    response = client.post(reverse('edit_income', kwargs={'transaction_id': income.id}), data=form_data)
+
+    assert response.status_code == 302
+    assert response.url == reverse('transactions')
+
+    income.refresh_from_db()
+    assert income.name == 'Updated Salary'
+    assert income.amount == 1200
+
+
+@pytest.mark.django_db
+def test_delete_income():
+    """
+    Test if the 'Delete Income' action successfully deletes an income transaction.
+    This test checks if the user can delete an existing income, and ensures it is removed from the database.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    category = Category.objects.create(name="Salary")  # Create category instance
+    income = Income.objects.create(user=user, name="Test Income", amount=100, category=category, date="2024-01-01")
+
+    client = Client()
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.post(reverse('edit_income', kwargs={'transaction_id': income.id}), {'delete': 'Delete'})
+
+    assert response.status_code == 302
+    assert response.url == reverse('transactions')
+
+    with pytest.raises(Income.DoesNotExist):
+        Income.objects.get(id=income.id)
