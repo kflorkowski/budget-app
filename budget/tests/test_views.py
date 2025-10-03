@@ -496,3 +496,68 @@ def test_delete_income():
 
     with pytest.raises(Income.DoesNotExist):
         Income.objects.get(id=income.id)
+
+
+# tests - views.edit_expense
+@pytest.mark.django_db
+def test_edit_expense_form_submission(client):
+    """
+    Test if the 'Edit Expense' form successfully updates an expense transaction.
+    This test checks if the user can update an existing expense with the correct category, amount, and date.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    category = Category.objects.create(name='Food')
+
+    expense = Expense.objects.create(
+        user=user,
+        name="Lunch",
+        amount=50,
+        category=category,
+        date="2024-11-01"
+    )
+
+    client.login(username='testuser', password='Testpassword1!')
+
+    form_data = {
+        'name': 'Updated Lunch',
+        'category': category.id,
+        'amount': 60,
+        'date': '2024-11-02',
+        'edit': 'Save'
+    }
+
+    response = client.post(reverse('edit_expense', kwargs={'transaction_id': expense.id}), data=form_data)
+
+    assert response.status_code == 302
+
+    expense.refresh_from_db()
+    assert expense.name == 'Updated Lunch'
+    assert expense.amount == 60
+    assert str(expense.date) == '2024-11-02'
+
+
+@pytest.mark.django_db
+def test_delete_expense(client):
+    """
+    Test if the 'Delete Expense' action successfully deletes an expense transaction.
+    This test checks if the user can delete an existing expense, and ensures it is removed from the database.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    category = Category.objects.create(name='Transportation')
+
+    expense = Expense.objects.create(
+        user=user,
+        name="Taxi Ride",
+        amount=30,
+        category=category,
+        date="2024-11-01"
+    )
+
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.post(reverse('edit_expense', kwargs={'transaction_id': expense.id}), data={'delete': 'Delete'})
+
+    assert response.status_code == 302
+
+    with pytest.raises(Expense.DoesNotExist):
+        expense.refresh_from_db()
