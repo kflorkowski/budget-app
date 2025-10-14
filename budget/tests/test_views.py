@@ -561,3 +561,60 @@ def test_delete_expense(client):
 
     with pytest.raises(Expense.DoesNotExist):
         expense.refresh_from_db()
+
+# tests - views.budgets
+@pytest.mark.django_db
+def test_budgets_view(client):
+    """
+    Test if the 'Budgets' view correctly calculates total income, total expenses,
+    and net budget for a given date range.
+    This test checks if the view works correctly when a custom date range is provided.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    category1 = Category.objects.create(name='Salary')
+    category2 = Category.objects.create(name='Rent')
+
+    Income.objects.create(user=user, name='Salary', amount=2000, category=category1, date='2024-11-01')
+    Expense.objects.create(user=user, name='Rent', amount=800, category=category2, date='2024-11-01')
+
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.get(reverse('budgets') + '?start_date=2024-11-01&end_date=2024-11-30')
+
+    assert response.status_code == 200
+
+    assert 'start_date' in response.context
+    assert 'end_date' in response.context
+    assert response.context['start_date'] == '2024-11-01'
+    assert response.context['end_date'] == '2024-11-30'
+    assert response.context['total_income'] == 2000
+    assert response.context['total_expenses'] == 800
+    assert response.context['net_budget'] == 1200
+
+@pytest.mark.django_db
+def test_budgets_view_default_dates(client):
+    """
+    Test if the 'Budgets' view correctly calculates total income, total expenses,
+    and net budget using the default date range (current month).
+    This test checks if the view works correctly when no date range is provided and defaults are used.
+    """
+    user = User.objects.create_user(username='testuser', password='Testpassword1!')
+    category1 = Category.objects.create(name='Salary')
+    category2 = Category.objects.create(name='Rent')
+
+    Income.objects.create(user=user, name='Salary', amount=2000, category=category1, date='2024-11-01')
+    Expense.objects.create(user=user, name='Rent', amount=800, category=category2, date='2024-11-01')
+
+    client.login(username='testuser', password='Testpassword1!')
+
+    response = client.get(reverse('budgets'))
+
+    assert response.status_code == 200
+
+    assert 'start_date' in response.context
+    assert 'end_date' in response.context
+    assert response.context['start_date'] == datetime.today().replace(day=1).strftime('%Y-%m-%d')
+    assert response.context['end_date'] == datetime.today().strftime('%Y-%m-%d')
+    assert response.context['total_income'] == 2000
+    assert response.context['total_expenses'] == 800
+    assert response.context['net_budget'] == 1200
