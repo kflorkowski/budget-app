@@ -602,8 +602,8 @@ def test_budgets_view_default_dates(client):
     category1 = Category.objects.create(name='Salary')
     category2 = Category.objects.create(name='Rent')
 
-    Income.objects.create(user=user, name='Salary', amount=2000, category=category1, date='2024-11-01')
-    Expense.objects.create(user=user, name='Rent', amount=800, category=category2, date='2024-11-01')
+    Income.objects.create(user=user, name='Salary', amount=2000, category=category1, date=datetime.today())
+    Expense.objects.create(user=user, name='Rent', amount=800, category=category2, date=datetime.today())
 
     client.login(username='testuser', password='Testpassword1!')
 
